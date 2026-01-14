@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fulham Broadway - Upminster</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #007229 0%, #005a1f 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .station-name {
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .line-badge {
+            display: inline-block;
+            background: #007229;
+            border: 2px solid #fff;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .direction {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 8px;
+        }
+
+        .board {
+            background: #0d0d1a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+
+        .board-header {
+            background: #1e1e3a;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .train {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #222;
+            transition: background 0.2s;
+        }
+
+        .train:last-child {
+            border-bottom: none;
+        }
+
+        .train.upminster {
+            background: rgba(0, 114, 41, 0.15);
+        }
+
+        .time {
+            font-size: 1.8em;
+            font-weight: 700;
+            min-width: 80px;
+            color: #ffcc00;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time.due {
+            color: #ff6b6b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .train-info {
+            flex: 1;
+            margin-left: 16px;
+        }
+
+        .destination {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .arrival-time {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .upminster-badge {
+            background: #007229;
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .no-trains {
+            padding: 40px 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        .error {
+            padding: 40px 20px;
+            text-align: center;
+            color: #ff6b6b;
+        }
+
+        .loading {
+            padding: 40px 20px;
+            text-align: center;
+            color: #888;
+        }
+
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .footer {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #555;
+        }
+
+        .refresh-btn {
+            background: #333;
+            border: none;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-top: 12px;
+        }
+
+        .refresh-btn:active {
+            background: #444;
+        }
+
+        .toggle-container {
+            margin-top: 12px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: 1px solid #444;
+            color: #888;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin: 0 4px;
+        }
+
+        .toggle-btn.active {
+            background: #007229;
+            border-color: #007229;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="station-name">Fulham Broadway</div>
+            <div class="line-badge">District Line</div>
+            <div class="direction">Eastbound departures</div>
+        </div>
+
+        <div class="board">
+            <div class="board-header">
+                <span>Next trains</span>
+                <span id="update-time">--:--:--</span>
+            </div>
+            <div id="trains">
+                <div class="loading">Loading trains</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="toggle-container">
+                <button class="toggle-btn active" id="btn-upminster" onclick="setFilter(true)">Upminster only</button>
+                <button class="toggle-btn" id="btn-all" onclick="setFilter(false)">All eastbound</button>
+            </div>
+            <button class="refresh-btn" onclick="fetchTrains()">Refresh now</button>
+            <div style="margin-top: 12px;">Auto-refreshes every 30s</div>
+            <div style="margin-top: 4px;">Data from TfL Open API</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://api.tfl.gov.uk/StopPoint/940GZZLUFBY/Arrivals';
+
+        const EASTBOUND = [
+            'upminster', 'barking', 'dagenham', 'elm park', 'hornchurch',
+            'tower hill', 'whitechapel', 'mile end', 'stepney', 'bow road',
+            'bromley-by-bow', 'west ham', 'plaistow', 'upton park', 'east ham',
+            'becontree'
+        ];
+
+        let upminsterOnly = true;
+
+        function setFilter(upminster) {
+            upminsterOnly = upminster;
+            document.getElementById('btn-upminster').classList.toggle('active', upminster);
+            document.getElementById('btn-all').classList.toggle('active', !upminster);
+            fetchTrains();
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return 'Due';
+            const mins = Math.floor(seconds / 60);
+            return mins === 1 ? '1 min' : `${mins} min`;
+        }
+
+        function formatArrivalTime(isoString) {
+            try {
+                const date = new Date(isoString);
+                return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                return '--:--';
+            }
+        }
+
+        function isEastbound(train) {
+            const dest = (train.destinationName || '').toLowerCase();
+            const towards = (train.towards || '').toLowerCase();
+            return EASTBOUND.some(d => dest.includes(d) || towards.includes(d));
+        }
+
+        function renderTrains(trains) {
+            const container = document.getElementById('trains');
+            document.getElementById('update-time').textContent =
+                new Date().toLocaleTimeString('en-GB');
+
+            if (!trains || trains.length === 0) {
+                container.innerHTML = '<div class="no-trains">No trains currently showing</div>';
+                return;
+            }
+
+            // Filter and sort
+            let filtered = trains
+                .filter(t => t.lineId?.toLowerCase() === 'district')
+                .filter(isEastbound);
+
+            if (upminsterOnly) {
+                filtered = filtered.filter(t =>
+                    (t.destinationName || '').toLowerCase().includes('upminster')
+                );
+            }
+
+            filtered.sort((a, b) => (a.timeToStation || 999) - (b.timeToStation || 999));
+            filtered = filtered.slice(0, 6);
+
+            if (filtered.length === 0) {
+                const msg = upminsterOnly ? 'No Upminster trains showing' : 'No eastbound trains showing';
+                container.innerHTML = `<div class="no-trains">${msg}</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(train => {
+                const isUpminster = (train.destinationName || '').toLowerCase().includes('upminster');
+                const timeStr = formatTime(train.timeToStation || 0);
+                const isDue = train.timeToStation < 60;
+
+                return `
+                    <div class="train ${isUpminster ? 'upminster' : ''}">
+                        <div class="time ${isDue ? 'due' : ''}">${timeStr}</div>
+                        <div class="train-info">
+                            <div class="destination">
+                                ${train.destinationName || 'Unknown'}
+                                ${isUpminster ? '<span class="upminster-badge">UPMINSTER</span>' : ''}
+                            </div>
+                            <div class="arrival-time">Expected ${formatArrivalTime(train.expectedArrival)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function fetchTrains() {
+            const container = document.getElementById('trains');
+
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('API request failed');
+                const data = await response.json();
+                renderTrains(data);
+            } catch (error) {
+                container.innerHTML = `<div class="error">Unable to load train data<br><small>${error.message}</small></div>`;
+            }
+        }
+
+        // Initial load
+        fetchTrains();
+
+        // Auto-refresh every 30 seconds
+        setInterval(fetchTrains, 30000);
+    </script>
+</body>
+</html>
